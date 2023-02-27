@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+  mysql:
+    image: mysql
+    container_name: mysql-server
+    restart: always
+    environment:
+      - MYSQL_DATABASE=birthday_for_friends
+      - MYSQL_ROOT_PASSWORD=toor
+    ports:
+      - 3306:3306
+  adminer:
+    image: adminer
+    container_name: adminer-server
+    restart: always
+    ports:
+      - 8081:8080
