@@ -1,9 +1,8 @@
 package com.gnoulel.birthdayforfriends.config.userdetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.gnoulel.birthdayforfriends.model.User;
+import com.gnoulel.birthdayforfriends.entity.User;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

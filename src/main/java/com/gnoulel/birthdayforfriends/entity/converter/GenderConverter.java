@@ -1,21 +1,24 @@
-package com.gnoulel.birthdayforfriends.model.converter;
+package com.gnoulel.birthdayforfriends.entity.converter;
 
 import com.gnoulel.birthdayforfriends.enums.GenderEnum;
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.Converter;
+import org.apache.commons.lang3.StringUtils;
+
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
+import java.util.Objects;
 
 @Converter(autoApply = true)
 public class GenderConverter implements AttributeConverter<GenderEnum, String> {
     @Override
     public String convertToDatabaseColumn(GenderEnum gender) {
-        if (gender == null) return null;
+        if (Objects.isNull(gender)) return null;
 
         return gender.getCode();
     }
 
     @Override
     public GenderEnum convertToEntityAttribute(String code) {
-        if (code == null) return null;
+        if (StringUtils.isBlank(code)) return null;
 
         return GenderEnum.of(code);
     }

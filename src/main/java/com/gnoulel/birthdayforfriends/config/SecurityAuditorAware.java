@@ -1,6 +1,6 @@
 package com.gnoulel.birthdayforfriends.config;
 
-import com.gnoulel.birthdayforfriends.model.User;
+import com.gnoulel.birthdayforfriends.entity.User;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -25,7 +25,6 @@ public class SecurityAuditorAware implements AuditorAware<String> {
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
                 .map(Authentication::getCredentials)
-                .map(User.class::cast)
-                .map(User::getEmail);
+                .map(String.class::cast);
     }
 }

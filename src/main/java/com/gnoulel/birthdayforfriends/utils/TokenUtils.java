@@ -10,25 +10,26 @@ import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
 @Slf4j
-public class JwtUtils {
-    private static final String TAG = "JwtUtils | ";
+@Component
+public class TokenUtils {
+    private static final String TAG = "TokenUtils | ";
     @Value("${bff.jwt.secret}")
-    private static String jwtSecret;
+    private String jwtSecret;
 
     @Value("${bff.jwt.expiration}")
-    private static long jwtExpirationMs;
+    private long jwtExpirationMs;
 
     /**
      * Generate JWT Access Token
      * @param username
      * @return
      */
-    public static String generateToken(String username) {
+    public String generateJwtToken(String username) {
 
         Date currentDate = new Date();
 
@@ -45,7 +46,7 @@ public class JwtUtils {
      * @param token
      * @return
      */
-    public static String getUsernameFromToken(String token) {
+    public String getUsernameFromJwtToken(String token) {
         Jws<Claims> claims =  Jwts.parser()
                 .setSigningKey(jwtSecret)
                 .parseClaimsJws(token);
@@ -58,7 +59,7 @@ public class JwtUtils {
      * @param token
      * @return
      */
-    public static boolean isTokenValid(String token) {
+    public boolean isJwtTokenValid(String token) {
         try {
             Jwts.parser().setSigningKey(jwtSecret).parse(token);
             return true;
