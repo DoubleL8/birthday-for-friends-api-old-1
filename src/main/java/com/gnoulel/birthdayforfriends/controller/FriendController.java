@@ -11,4 +11,9 @@ public class FriendController {
         return "hello";
     }
 
+    @GetMapping("api/test")
+    public String home() {
+        return "protected endpoint";
+    }
+
 }

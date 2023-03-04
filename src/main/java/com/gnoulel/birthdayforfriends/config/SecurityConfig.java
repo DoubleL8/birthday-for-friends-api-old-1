@@ -58,7 +58,8 @@ public class SecurityConfig {
 
     public CustomRequestHeaderTokenFilter customRequestHeaderTokenFilter() throws Exception {
         CustomRequestHeaderTokenFilter customFilter =
-                new CustomRequestHeaderTokenFilter(authenticationConfiguration.getAuthenticationManager(), tokenUtils);
+                new CustomRequestHeaderTokenFilter(authenticationConfiguration.getAuthenticationManager(),
+                        tokenUtils, userDetailsService);
         customFilter.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher(signInUrl, "POST"));
 
         return customFilter;

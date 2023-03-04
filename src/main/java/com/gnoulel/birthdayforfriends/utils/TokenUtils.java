@@ -17,7 +17,6 @@ import java.util.Date;
 @Slf4j
 @Component
 public class TokenUtils {
-    private static final String TAG = "TokenUtils | ";
     @Value("${bff.jwt.secret}")
     private String jwtSecret;
 

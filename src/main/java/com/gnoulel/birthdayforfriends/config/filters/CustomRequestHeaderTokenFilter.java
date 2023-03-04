@@ -12,6 +12,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.FilterChain;
@@ -25,38 +28,52 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticationFilter {
     private static final String TAG = "CustomRequestHeaderTokenFilter | ";
 
-    private AuthenticationManager authenticationManager;
-    private TokenUtils tokenUtils;
+    private final AuthenticationManager authenticationManager;
+    private final TokenUtils tokenUtils;
+    private final UserDetailsService userDetailsService;
 
-    public CustomRequestHeaderTokenFilter(AuthenticationManager authenticationManager, TokenUtils tokenUtils) {
+    public CustomRequestHeaderTokenFilter(AuthenticationManager authenticationManager,
+                                          TokenUtils tokenUtils,
+                                          UserDetailsService userDetailsService) {
         super(authenticationManager);
         this.authenticationManager = authenticationManager;
         this.tokenUtils = tokenUtils;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-
-       /*
-       * Invokes the requiresAuthentication() method to determine whether the request is for authentication and should be handled
-       * by this filter. If it is an authentication request, the attemptAuthentication will be invoked to perform the authentication.
-       * There are then three possible outcomes:
-           1.	An Authentication object is returned. The configured SessionAuthenticationStrategy will be invoked (to handle any
-               session-related behavior such as creating a new session to protect against session-fixation attacks) followed by the
-               invocation of successfulAuthentication(HttpServletRequest, HttpServletResponse, FilterChain, Authentication) method
-           2.	An AuthenticationException occurs during authentication. The unsuccessfulAuthentication method will be invoked
-           3.	Null is returned, indicating that the authentication process is incomplete. The method will then return immediately,
-               assuming that the subclass has done any necessary work (such as redirects) to continue the authentication process. The assumption is that a later request will be received by this method where the returned Authentication object is not null.
-       */
-
+        /*
+         * Invokes the requiresAuthentication() method to determine whether the request is for authentication and should be handled
+         * by this filter. If it is an authentication request, the attemptAuthentication() will be invoked to perform the authentication.
+         * There are then three possible outcomes:
+             1.	An Authentication object is returned. The configured SessionAuthenticationStrategy will be invoked (to handle any
+                 session-related behavior such as creating a new session to protect against session-fixation attacks) followed by the
+                 invocation of successfulAuthentication(HttpServletRequest, HttpServletResponse, FilterChain, Authentication) method
+             2.	An AuthenticationException occurs during authentication. The unsuccessfulAuthentication method will be invoked
+             3.	Null is returned, indicating that the authentication process is incomplete. The method will then return immediately,
+                assuming that the subclass has done any necessary work (such as redirects) to continue the authentication process. The assumption is that a later request will be received by this method where the returned Authentication object is not null.
+         */
         log.info(TAG + "DO_FILTER | ... Is Authentication required?");
 
-        //Here we will attempt JWT AUTHORIZATION
+        HttpServletRequest httpReq = (HttpServletRequest) request;
+        String username = getUsernameFromBearerToken(httpReq.getHeader(SecurityConstant.AUTH_HEADER));
+        CustomUserDetails user = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+
+        if (!Objects.isNull(user)) {
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, user.getAuthorities());
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(authentication);
+            SecurityContextHolder.setContext(context);
+
+            log.info(TAG + "Authorized Successfully!");
+        }
 
         super.doFilter(request, response, chain);
     }
@@ -75,7 +92,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
            So, it should return either the authenticated user token, or null if authentication is incomplete.
         */
 
-        log.info(TAG + " | Authentication Processing ... | Attempting Authentication ... ");
+        log.info(TAG + "Authentication Processing ... | Attempting Authentication ... ");
 
         UsernamePasswordAuthenticationToken unauthenticatedToken =
                 getUnauthenticatedToken(request.getHeader(SecurityConstant.AUTH_HEADER));
@@ -168,6 +185,12 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         return authenticationToken;
     }
 
+    /**
+     * Check the prefix of the Authorization header
+     * @param headerToken Authorization header
+     * @param prefix Token's prefix
+     * @return True - If the Authorization header matches prefix
+     */
     private boolean isAuthorizationHeader(String headerToken, String prefix) {
         return !StringUtils.isBlank(headerToken) && StringUtils.startsWith(headerToken, prefix);
     }
@@ -182,5 +205,28 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         String decodedToken = new String(decodedBytes);
 
         return decodedToken.split(":", 2);
+    }
+
+    /**
+     * Get username from Bearer token
+     * @param headerToken Bearer token
+     * @return Username
+     */
+    private String getUsernameFromBearerToken(String headerToken) {
+        if (!isAuthorizationHeader(headerToken, SecurityConstant.BEARER_TOKEN_PREFIX)) {
+            log.info(TAG + "Authorization Header for Bearer (JWT) Authorization not provided or is null or invalid!");
+            return "";
+        }
+
+        try {
+            String token = StringUtils.removeStart(headerToken, SecurityConstant.BEARER_TOKEN_PREFIX).trim();
+            String username = tokenUtils.getUsernameFromJwtToken(token);
+
+            if (!Objects.isNull(username)) return username;
+        } catch (Exception e) {
+            log.info(TAG + "Error getting the Username from Bearer JWT token! - " + e.getMessage());
+        }
+
+        return "";
     }
 }
