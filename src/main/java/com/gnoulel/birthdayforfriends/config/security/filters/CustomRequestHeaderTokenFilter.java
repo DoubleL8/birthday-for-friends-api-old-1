@@ -1,7 +1,8 @@
-package com.gnoulel.birthdayforfriends.config.filters;
+package com.gnoulel.birthdayforfriends.config.security.filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gnoulel.birthdayforfriends.config.userdetails.CustomUserDetails;
+import com.gnoulel.birthdayforfriends.config.security.exception.CustomAuthenticationEntryPoint;
+import com.gnoulel.birthdayforfriends.config.security.userdetails.CustomUserDetails;
 import com.gnoulel.birthdayforfriends.constants.AppConstant;
 import com.gnoulel.birthdayforfriends.constants.SecurityConstant;
 import com.gnoulel.birthdayforfriends.utils.TokenUtils;
@@ -15,6 +16,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.FilterChain;
@@ -24,6 +26,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,9 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
     private final AuthenticationManager authenticationManager;
     private final TokenUtils tokenUtils;
     private final UserDetailsService userDetailsService;
+    private CustomAuthenticationEntryPoint authPoint;
+
+    private String uri;
 
     public CustomRequestHeaderTokenFilter(AuthenticationManager authenticationManager,
                                           TokenUtils tokenUtils,
@@ -45,6 +51,11 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         this.authenticationManager = authenticationManager;
         this.tokenUtils = tokenUtils;
         this.userDetailsService = userDetailsService;
+    }
+
+    public void setAuthPoint(CustomAuthenticationEntryPoint authPoint) {
+        this.authPoint = authPoint;
+        setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(authPoint));
     }
 
     @Override
@@ -63,6 +74,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         log.info(TAG + "DO_FILTER | ... Is Authentication required?");
 
         HttpServletRequest httpReq = (HttpServletRequest) request;
+        uri = httpReq.getRequestURI();
         String username = getUsernameFromBearerToken(httpReq.getHeader(SecurityConstant.AUTH_HEADER));
         CustomUserDetails user = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
 
@@ -118,7 +130,8 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         log.info(TAG + "Authentication Processing ... | SUCCESSFUL Authentication!");
 
         // Get principal from authentication
-        CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
+        String username = (String) authResult.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
         // Get issuer -> the request URL
         String issuer = request.getRequestURL().toString();
         // Get role from principal authorities
@@ -130,7 +143,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
         tokens.put("access_token", accessToken);
 
         // Return tokens to client
-        response.setHeader(AppConstant.CONTENT_TYPE, AppConstant.APPLICATION_JSON);
+        response.setContentType(AppConstant.APPLICATION_JSON);
         new ObjectMapper().writeValue(response.getOutputStream(), tokens);
     }
 
@@ -166,6 +179,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
     private UsernamePasswordAuthenticationToken getUnauthenticatedToken(String headerToken) {
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken("", "");
         if (!isAuthorizationHeader(headerToken, SecurityConstant.BASIC_TOKEN_PREFIX)) {
+            updateAuthenticationError(SecurityConstant.BASIC_TOKEN_INVALID_ERROR);
             return authenticationToken;
         }
 
@@ -179,6 +193,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
             authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
 
         } catch (IllegalArgumentException e) {
+            updateAuthenticationError(MessageFormat.format(SecurityConstant.AUTH_HEADER_ERROR, e.getMessage()));
             log.info(TAG + "Authentication Processing ... | Error getting the Basic authorization header! | " + e.getMessage());
         }
 
@@ -214,6 +229,7 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
      */
     private String getUsernameFromBearerToken(String headerToken) {
         if (!isAuthorizationHeader(headerToken, SecurityConstant.BEARER_TOKEN_PREFIX)) {
+            updateAuthorizationError(SecurityConstant.BEARER_TOKEN_INVALID_ERROR);
             log.info(TAG + "Authorization Header for Bearer (JWT) Authorization not provided or is null or invalid!");
             return "";
         }
@@ -224,9 +240,40 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
 
             if (!Objects.isNull(username)) return username;
         } catch (Exception e) {
+            updateAuthorizationError(MessageFormat.format(SecurityConstant.BEARER_TOKEN_USERNAME_ERROR, e.getMessage()));
             log.info(TAG + "Error getting the Username from Bearer JWT token! - " + e.getMessage());
         }
 
         return "";
+    }
+
+    /**
+     * This is the method that updates the properties in
+     * our CustomAuthenticationEntryPoint class
+     * @param msg
+     */
+    private void updateAuthorizationError(String msg) {
+        if (StringUtils.endsWith(uri, SecurityConstant.SIGN_IN_URI_ENDING)) {
+            // If, for any reason, the request uri concerns the Basic Authentication endpoint,
+            // reset the properties to their initial values (Authentication related).
+            this.authPoint.setInitValues();
+            this.authPoint.setPath(uri);
+            return;
+        }
+
+        // Set the properties for Authorization error responses
+        this.authPoint.setPath(uri);
+        this.authPoint.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        this.authPoint.setRealmAuthSchema(SecurityConstant.BEARER_TOKEN_PREFIX);
+        this.authPoint.setCustomMessage(msg);
+    }
+
+    /**
+     * This is just added for handling errors specific to our filter inner authentication failures
+     * @param msg
+     */
+    public void updateAuthenticationError(String msg) {
+        this.authPoint.setPath(uri);
+        this.authPoint.setCustomMessage(msg);
     }
 }

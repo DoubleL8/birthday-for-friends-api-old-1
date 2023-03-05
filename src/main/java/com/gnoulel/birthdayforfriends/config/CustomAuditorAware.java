@@ -1,6 +1,5 @@
 package com.gnoulel.birthdayforfriends.config;
 
-import com.gnoulel.birthdayforfriends.entity.User;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -18,7 +17,7 @@ import java.util.Optional;
  * type the properties annotated with @CreatedBy or @LastModifiedBy have to be.
  */
 @Component
-public class SecurityAuditorAware implements AuditorAware<String> {
+public class CustomAuditorAware implements AuditorAware<String> {
     @Override
     public Optional<String> getCurrentAuditor() {
         return Optional.ofNullable(SecurityContextHolder.getContext())

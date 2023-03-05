@@ -1,13 +1,13 @@
 package com.gnoulel.birthdayforfriends.config;
 
-import com.gnoulel.birthdayforfriends.config.filters.CustomRequestHeaderTokenFilter;
-import com.gnoulel.birthdayforfriends.config.userdetails.CustomUserDetailsService;
+import com.gnoulel.birthdayforfriends.config.security.exception.CustomAuthenticationEntryPoint;
+import com.gnoulel.birthdayforfriends.config.security.filters.CustomRequestHeaderTokenFilter;
+import com.gnoulel.birthdayforfriends.config.security.userdetails.CustomUserDetailsService;
 import com.gnoulel.birthdayforfriends.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,12 +34,15 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final TokenUtils tokenUtils;
 
+    private final CustomAuthenticationEntryPoint authPoint;
+
     public SecurityConfig(AuthenticationConfiguration authenticationConfiguration,
                           CustomUserDetailsService userDetailsService,
-                          TokenUtils tokenUtils) {
+                          TokenUtils tokenUtils, CustomAuthenticationEntryPoint authPoint) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.userDetailsService = userDetailsService;
         this.tokenUtils = tokenUtils;
+        this.authPoint = authPoint;
     }
 
     @Bean
@@ -47,20 +50,24 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public DaoAuthenticationProvider daoAuthenticationProvider() {
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
-        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
-
-        return daoAuthenticationProvider;
-    }
+//    @Bean
+//    public DaoAuthenticationProvider daoAuthenticationProvider() {
+//        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+//        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
+//        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+//
+//        return daoAuthenticationProvider;
+//    }
 
     public CustomRequestHeaderTokenFilter customRequestHeaderTokenFilter() throws Exception {
         CustomRequestHeaderTokenFilter customFilter =
-                new CustomRequestHeaderTokenFilter(authenticationConfiguration.getAuthenticationManager(),
-                        tokenUtils, userDetailsService);
+                new CustomRequestHeaderTokenFilter(
+                        authenticationConfiguration.getAuthenticationManager(),
+                        tokenUtils,
+                        userDetailsService);
+
         customFilter.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher(signInUrl, "POST"));
+        customFilter.setAuthPoint(authPoint);
 
         return customFilter;
     }
@@ -73,6 +80,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable()
                 .formLogin().disable()
+                .exceptionHandling().authenticationEntryPoint(authPoint)
+                .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeHttpRequests()
@@ -80,7 +89,7 @@ public class SecurityConfig {
                 .antMatchers("/api/friends").permitAll()
                 .anyRequest().authenticated();
 
-        http.authenticationProvider(daoAuthenticationProvider());
+//        http.authenticationProvider(daoAuthenticationProvider());
         http.addFilter(customRequestHeaderTokenFilter());
 
         return http.build();

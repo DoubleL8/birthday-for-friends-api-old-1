@@ -1,4 +1,4 @@
-package com.gnoulel.birthdayforfriends.config.userdetails;
+package com.gnoulel.birthdayforfriends.config.security.userdetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.gnoulel.birthdayforfriends.entity.User;

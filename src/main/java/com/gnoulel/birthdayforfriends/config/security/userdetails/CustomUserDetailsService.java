@@ -1,4 +1,4 @@
-package com.gnoulel.birthdayforfriends.config.userdetails;
+package com.gnoulel.birthdayforfriends.config.security.userdetails;
 
 import com.gnoulel.birthdayforfriends.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
