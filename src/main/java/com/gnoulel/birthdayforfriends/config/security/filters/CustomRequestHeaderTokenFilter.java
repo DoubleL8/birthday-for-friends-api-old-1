@@ -38,19 +38,23 @@ public class CustomRequestHeaderTokenFilter extends UsernamePasswordAuthenticati
     private static final String TAG = "CustomRequestHeaderTokenFilter | ";
 
     private final AuthenticationManager authenticationManager;
-    private final TokenUtils tokenUtils;
-    private final UserDetailsService userDetailsService;
+    private TokenUtils tokenUtils;
+    private UserDetailsService userDetailsService;
     private CustomAuthenticationEntryPoint authPoint;
 
     private String uri;
 
-    public CustomRequestHeaderTokenFilter(AuthenticationManager authenticationManager,
-                                          TokenUtils tokenUtils,
-                                          UserDetailsService userDetailsService) {
+    public CustomRequestHeaderTokenFilter(AuthenticationManager authenticationManager) {
         super(authenticationManager);
         this.authenticationManager = authenticationManager;
-        this.tokenUtils = tokenUtils;
+    }
+
+    public void setUserDetailsService(UserDetailsService userDetailsService) {
         this.userDetailsService = userDetailsService;
+    }
+
+    public void setTokenUtils(TokenUtils tokenUtils) {
+        this.tokenUtils = tokenUtils;
     }
 
     public void setAuthPoint(CustomAuthenticationEntryPoint authPoint) {

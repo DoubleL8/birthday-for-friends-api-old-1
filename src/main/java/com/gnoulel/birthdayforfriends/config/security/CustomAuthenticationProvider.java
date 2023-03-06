@@ -1,8 +1,11 @@
 package com.gnoulel.birthdayforfriends.config.security;
 
 import com.gnoulel.birthdayforfriends.config.security.userdetails.CustomUserDetails;
+import com.gnoulel.birthdayforfriends.constants.SecurityConstant;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -36,14 +39,18 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         String username = authentication.getName();
         String password = String.valueOf(authentication.getCredentials());
 
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            throw new InsufficientAuthenticationException(SecurityConstant.CREDENTIALS_NOT_PROVIDED_ERROR);
+        }
+
         CustomUserDetails user = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+        if (Objects.isNull(user)) throw new UsernameNotFoundException(SecurityConstant.USERNAME_NOT_FOUND_ERROR);
 
-        if (Objects.isNull(user)) throw new UsernameNotFoundException("Username not found!");
-
+        // Compare password
         if (passwordEncoder.matches(password, user.getPassword())) {
             authToken = new UsernamePasswordAuthenticationToken(username, null, user.getAuthorities());
         } else {
-            throw new BadCredentialsException("Bad Credentials");
+            throw new BadCredentialsException(SecurityConstant.CREDENTIALS_INCORRECT_ERROR);
         }
 
         return authToken;

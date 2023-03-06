@@ -1,5 +1,6 @@
 package com.gnoulel.birthdayforfriends.config;
 
+import com.gnoulel.birthdayforfriends.config.security.exception.CustomAccessDeniedHandler;
 import com.gnoulel.birthdayforfriends.config.security.exception.CustomAuthenticationEntryPoint;
 import com.gnoulel.birthdayforfriends.config.security.filters.CustomRequestHeaderTokenFilter;
 import com.gnoulel.birthdayforfriends.config.security.userdetails.CustomUserDetailsService;
@@ -33,7 +34,6 @@ public class SecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final CustomUserDetailsService userDetailsService;
     private final TokenUtils tokenUtils;
-
     private final CustomAuthenticationEntryPoint authPoint;
 
     public SecurityConfig(AuthenticationConfiguration authenticationConfiguration,
@@ -61,12 +61,11 @@ public class SecurityConfig {
 
     public CustomRequestHeaderTokenFilter customRequestHeaderTokenFilter() throws Exception {
         CustomRequestHeaderTokenFilter customFilter =
-                new CustomRequestHeaderTokenFilter(
-                        authenticationConfiguration.getAuthenticationManager(),
-                        tokenUtils,
-                        userDetailsService);
+                new CustomRequestHeaderTokenFilter(authenticationConfiguration.getAuthenticationManager());
 
         customFilter.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher(signInUrl, "POST"));
+        customFilter.setUserDetailsService(userDetailsService);
+        customFilter.setTokenUtils(tokenUtils);
         customFilter.setAuthPoint(authPoint);
 
         return customFilter;
@@ -81,6 +80,8 @@ public class SecurityConfig {
         http.cors().and().csrf().disable()
                 .formLogin().disable()
                 .exceptionHandling().authenticationEntryPoint(authPoint)
+                .and()
+                .exceptionHandling().accessDeniedHandler(new CustomAccessDeniedHandler())
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()

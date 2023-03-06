@@ -2,9 +2,9 @@ package com.gnoulel.birthdayforfriends.config.security.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.gnoulel.birthdayforfriends.constants.AppConstant;
 import com.gnoulel.birthdayforfriends.constants.SecurityConstant;
+import com.gnoulel.birthdayforfriends.exception.ErrorMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
@@ -15,8 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -71,14 +69,13 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     }
 
     public String getJsonString() throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode errorObject = mapper.createObjectNode();
-        errorObject.put(AppConstant.TIMESTAMP, ZonedDateTime.now().format(DateTimeFormatter.ofPattern(AppConstant.DATETIME_FORMAT)));
-        errorObject.put(AppConstant.STATUS, status);
-        errorObject.put(AppConstant.ERROR, HttpStatus.valueOf(status).getReasonPhrase());
-        errorObject.put(AppConstant.MESSAGE, errorMessage);
-        errorObject.put(AppConstant.PATH, path);
+        ErrorMessage errorObject =  new ErrorMessage(
+          status,
+          HttpStatus.valueOf(status).getReasonPhrase(),
+          errorMessage,
+          path
+        );
 
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(errorObject);
+        return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(errorObject);
     }
 }
