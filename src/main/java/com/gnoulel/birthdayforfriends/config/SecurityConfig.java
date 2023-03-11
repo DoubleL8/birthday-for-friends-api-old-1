@@ -87,7 +87,6 @@ public class SecurityConfig {
                 .and()
                 .authorizeHttpRequests()
                 .antMatchers( HttpMethod.POST,"/api/auth/signup").permitAll()
-                .antMatchers("/api/friends").permitAll()
                 .anyRequest().authenticated();
 
 //        http.authenticationProvider(daoAuthenticationProvider());

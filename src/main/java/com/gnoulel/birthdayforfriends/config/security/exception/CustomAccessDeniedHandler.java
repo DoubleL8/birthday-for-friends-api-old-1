@@ -2,7 +2,7 @@ package com.gnoulel.birthdayforfriends.config.security.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gnoulel.birthdayforfriends.constants.AppConstant;
-import com.gnoulel.birthdayforfriends.exception.ErrorMessage;
+import com.gnoulel.birthdayforfriends.exception.handler.ErrorMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;

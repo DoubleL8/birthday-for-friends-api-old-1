@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gnoulel.birthdayforfriends.constants.AppConstant;
 import com.gnoulel.birthdayforfriends.constants.SecurityConstant;
-import com.gnoulel.birthdayforfriends.exception.ErrorMessage;
+import com.gnoulel.birthdayforfriends.exception.handler.ErrorMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;

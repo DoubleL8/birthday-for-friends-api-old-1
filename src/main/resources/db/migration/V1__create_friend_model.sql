@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS `friend` (
     `last_modified_by` varchar(50) DEFAULT NULL,
     `last_modified_date` TIMESTAMP DEFAULT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `email_unique` (`email`),
+    UNIQUE KEY `email_unique` (`email`, `user_id`),
+    UNIQUE KEY `phone_unique` (`phone`, `user_id`),
     KEY `fk_friend__user_idx` (`user_id`),
     CONSTRAINT `fk_friend__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

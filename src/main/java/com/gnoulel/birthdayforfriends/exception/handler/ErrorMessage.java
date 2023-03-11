@@ -1,4 +1,4 @@
-package com.gnoulel.birthdayforfriends.exception;
+package com.gnoulel.birthdayforfriends.exception.handler;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

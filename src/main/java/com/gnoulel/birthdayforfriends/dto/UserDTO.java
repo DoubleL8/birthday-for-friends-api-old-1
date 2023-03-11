@@ -5,11 +5,11 @@ import com.gnoulel.birthdayforfriends.entity.User;
 import com.gnoulel.birthdayforfriends.enums.RoleEnum;
 import lombok.Data;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Data
 public class UserDTO {
-
     private Long id;
     private String email;
     private String password;
@@ -28,10 +28,12 @@ public class UserDTO {
         user.setEmail(dto.getEmail());
         user.setName(dto.getName());
 
-        RoleEnum role = Optional.ofNullable(dto.getRole())
-                .map(RoleEnum::valueOf)
-                .orElse(null);
-        user.setRole(role);
+        if (!Objects.isNull(dto.getRole())) {
+            RoleEnum role = Optional.of(dto.getRole())
+                    .map(RoleEnum::valueOf)
+                    .orElseThrow(() -> new IllegalArgumentException("User role is invalid!"));
+            user.setRole(role);
+        }
 
         return user;
     }

@@ -23,7 +23,7 @@ public class CustomAuditorAware implements AuditorAware<String> {
         return Optional.ofNullable(SecurityContextHolder.getContext())
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
-                .map(Authentication::getCredentials)
+                .map(Authentication::getPrincipal)
                 .map(String.class::cast);
     }
 }
